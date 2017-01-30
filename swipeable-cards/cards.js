@@ -3,10 +3,12 @@
 class Cards {
   constructor() {
     this.cards = document.querySelectorAll('.card');
+
     this.onStart = this.onStart.bind(this)
     this.onMove = this.onMove.bind(this)
     this.onEnd = this.onEnd.bind(this)
     this.update = this.update.bind(this);
+
     this.target = null;
     this.targetBCR = null;
     this.startX = 0;
@@ -28,20 +30,21 @@ class Cards {
     document.addEventListener('mousedown', this.onStart);
     document.addEventListener('mousemove', this.onMove);
     document.addEventListener('mouseup', this.onEnd);
-
   }
 
   onStart(e) {
-    if(this.target) return;
 
+    if(this.target) return;
     if(!e.target.classList.contains('card')) return
 
     this.target = e.target
     this.targetBCR = this.target.getBoundingClientRect();
+
     this.startX = e.pageX || e.touches[0].pageX
     this.currentX = this.startX;
-    this.target.style.willChange = 'transform';
+
     this.draggingCard = true;
+    this.target.style.willChange = 'transform';
 
     e.preventDefault();
   }
@@ -56,8 +59,8 @@ class Cards {
     if(!this.target) return;
 
 
-    this.draggingCard = false;
-    // this.currentX = e.pageX || e.touches[0].pageX
+    // this.draggingCard = false;
+    this.currentX = e.pageX || e.touches[0].pageX
 
     let screenX = this.currentX - this.startX
 
@@ -76,44 +79,57 @@ class Cards {
     if (this.draggingCard) {
       this.screenX = this.currentX - this.startX;
     } else {
-      this.screenX += (this.targetX - this.screenX) / 4;
+      this.screenX += (this.targetX - this.screenX) / 10;
     }
 
-    const normalizedDragDistance =
-        (Math.abs(this.screenX) / this.targetBCR.width);
+    const normalizedDragDistance = (Math.abs(this.screenX) / this.targetBCR.width);
     const opacity = 1 - Math.pow(normalizedDragDistance, 3);
+
+
 
     this.target.style.transform = `translateX(${this.screenX}px)`;
     this.target.style.opacity = opacity;
-
-    if (this.draggingCard)
-      return;
-
-    const isNearlyAtStart = (Math.abs(this.screenX) < 0.1);
     const isNearlyInvisible = (opacity < 0.01);
 
-    if (isNearlyInvisible) {
+    if(!this.draggingCard) {
+      if(isNearlyInvisible) {
+        let isAfterCurrentTarget = false;
+        for(let i = 0; i < this.cards.length; i++) {
+          const card = this.cards[i];
 
-      if (!this.target || !this.target.parentNode)
-        return;
+          if(card === this.target) {
+            isAfterCurrentTarget = true;
+            continue
+          }
 
-      this.target.parentNode.removeChild(this.target);
+          if(!isAfterCurrentTarget)
+            continue;
 
-      const targetIndex = this.cards.indexOf(this.target);
-      this.cards.splice(targetIndex, 1);
+          const onTransitionEnd = _ => {
+            this.target = null;
+            card.style.transition = 'none';
+            card.removeEventListener('transitionend', onTransitionEnd)
+          }
 
-      this.animateOtherCardsIntoPosition(targetIndex);
+          card.style.transform = `translateY(${this.targetBCR.height + 20}px)`;
+          requestAnimationFrame(_ => {
+            card.style.transition = 'transform 3s cubic-bezier(0,0,0.15, 1)'
+            card.style.transform = 'none';
+          })
+          card.addEventListener('transitionend', onTransitionEnd)
+        }
 
-    } else if (isNearlyAtStart) {
-      this.resetTarget();
+        if(this.target && this.target.parentNode)
+        this.target.parentNode.removeChild(this.target)
+      }
+
+      if(isNearlyAtStart) {
+        this.target.style.willChange = 'initial';
+        this.target.style.transform = 'none';
+        this.target = null;
+      }
     }
   }
-
-    if(isNearlyAtStart) {
-      this.target.style.willChange = 'initial';
-      this.target.style.transform = 'none';
-      this.target = null;
-    }
 }
 
 window.addEventListener('load', () => new Cards());
