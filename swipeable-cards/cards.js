@@ -66,38 +66,54 @@ class Cards {
     }
   }
 
-  update() {
-    requestAnimationFrame(this.update);
-    if(!this.target) return;
+  update () {
 
-    if(this.draggingCard) {
+    requestAnimationFrame(this.update);
+
+    if (!this.target)
+      return;
+
+    if (this.draggingCard) {
       this.screenX = this.currentX - this.startX;
     } else {
-      this.screenX += (this.targetX - this.screenX /10)
+      this.screenX += (this.targetX - this.screenX) / 4;
     }
 
-    const normalizedDragDistance = (Math.abs(this.screenX) / this.targetBCR.width);
+    const normalizedDragDistance =
+        (Math.abs(this.screenX) / this.targetBCR.width);
     const opacity = 1 - Math.pow(normalizedDragDistance, 3);
 
-    this.target.style.transform = `translate(${this.screenX}px)`
-    this.target.style.opacity = opacity
+    this.target.style.transform = `translateX(${this.screenX}px)`;
+    this.target.style.opacity = opacity;
 
-    const isNearlyAtStart = (Math.abs(this.screenX) < 0.01)
-    const isAlmostInvisible = (opacity < 0.01)
+    if (this.draggingCard)
+      return;
 
-    if(!this.draggingCard) {
-      if(isAlmostInvisible) {
-        this.target.parentNode.removeChild(this.target)
-        this.target = null;
-      }
+    const isNearlyAtStart = (Math.abs(this.screenX) < 0.1);
+    const isNearlyInvisible = (opacity < 0.01);
+
+    if (isNearlyInvisible) {
+
+      if (!this.target || !this.target.parentNode)
+        return;
+
+      this.target.parentNode.removeChild(this.target);
+
+      const targetIndex = this.cards.indexOf(this.target);
+      this.cards.splice(targetIndex, 1);
+
+      this.animateOtherCardsIntoPosition(targetIndex);
+
+    } else if (isNearlyAtStart) {
+      this.resetTarget();
     }
+  }
 
     if(isNearlyAtStart) {
       this.target.style.willChange = 'initial';
-      this.target.style.transform = 'none';ooooooo00000
+      this.target.style.transform = 'none';
       this.target = null;
     }
-  }
 }
 
 window.addEventListener('load', () => new Cards());
